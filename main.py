@@ -49,8 +49,11 @@ def start_dump1090():
     print("dump1090 started.")
     return proc
 
+dump1090_proc = None
+
 def main():
     """Main application loop"""
+    global dump1090_proc
     print("\nStarting Retro ADS-B Radar...")
     dump1090_proc = start_dump1090()
     print(f"Location: {config.AREA_NAME} ({config.LAT}°, {config.LON}°)")
@@ -209,4 +212,13 @@ def main():
     sys.exit()
 
 if __name__ == "__main__":
-    main()
+    dump1090_proc = None
+    try:
+        main()
+    finally:
+        if dump1090_proc and dump1090_proc.poll() is None:
+            dump1090_proc.terminate()
+            try:
+                dump1090_proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                dump1090_proc.kill()
