@@ -203,6 +203,15 @@ class RadarScope:
         pygame.gfxdraw.filled_circle(self.screen, x, y, dot_r, colour)
         pygame.gfxdraw.aacircle(self.screen, x, y, dot_r, colour)
 
+        if config.SHOW_AIRCRAFT_TRAILS and aircraft.track > 0:
+            track_rad = math.radians(aircraft.track)
+            trail = (config.TRAIL_MIN_LENGTH +
+                     (config.TRAIL_MAX_LENGTH - config.TRAIL_MIN_LENGTH) *
+                     min(aircraft.speed, config.TRAIL_MAX_SPEED) / config.TRAIL_MAX_SPEED)
+            tx = x - trail * math.sin(track_rad)
+            ty = y + trail * math.cos(track_rad)
+            _aa_line(self.screen, colour, (int(tx), int(ty)), (x, y))
+
         label = self.font.render(aircraft.callsign, True, colour)
         self.screen.blit(label, (x + dot_r + 3, y - label.get_height() // 2))
 
