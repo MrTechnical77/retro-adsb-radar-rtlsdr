@@ -152,6 +152,15 @@ def main():
         table.draw(radar.painted_aircraft, tracker.status, tracker.last_update)
 
         # Instructions with clickable areas (centered under radar scope)
+        # Close button (top-right corner)
+        btn_size = max(36, int(44 * config.SCALE))
+        close_rect = pygame.Rect(config.SCREEN_WIDTH - btn_size - 8, 8, btn_size, btn_size)
+        mouse_pos = pygame.mouse.get_pos()
+        close_col = config.BRIGHT_GREEN if close_rect.collidepoint(mouse_pos) else config.DIM_GREEN
+        pygame.draw.rect(screen, close_col, close_rect, 2)
+        x_surf = font_cache['header'].render("X", True, close_col)
+        screen.blit(x_surf, x_surf.get_rect(center=close_rect.center))
+
         quit_text = "Q/ESC: QUIT"
         audio_text = f"A: ATC [{'ON' if audio.is_playing() else 'OFF'}]" if audio and audio.initialised else ""
 
@@ -208,7 +217,9 @@ def main():
                 if radar.handle_event(event):
                     airports = load_airports()  # reload for new range
                 mouse_pos = pygame.mouse.get_pos()
-                if audio and audio_rect and audio_rect.collidepoint(mouse_pos):
+                if close_rect.collidepoint(mouse_pos):
+                    running = False
+                elif audio and audio_rect and audio_rect.collidepoint(mouse_pos):
                     audio.toggle()
                 elif quit_rect.collidepoint(mouse_pos):
                     running = False
