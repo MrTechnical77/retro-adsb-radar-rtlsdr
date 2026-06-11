@@ -7,6 +7,8 @@ import sys
 import time
 import subprocess
 import shutil
+import threading
+import http.server
 from datetime import datetime
 from typing import Optional
 
@@ -33,21 +35,35 @@ def find_dump1090():
             return c
     return None
 
+DUMP1090_JSON_DIR = "/tmp/dump1090"
+
 def start_dump1090():
     """Launch dump1090 as a background subprocess. Returns the process or None."""
     binary = find_dump1090()
     if not binary:
         print("WARNING: dump1090 not found. Skipping auto-start.")
         return None
+    os.makedirs(DUMP1090_JSON_DIR, exist_ok=True)
     print(f"Starting dump1090 from {binary}...")
     proc = subprocess.Popen(
-        [binary, "--net", "--quiet"],
+        [binary, "--net", "--quiet", "--write-json", DUMP1090_JSON_DIR],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL
     )
-    time.sleep(2)  # Give dump1090 time to initialise
+    time.sleep(3)  # Give dump1090 time to initialise and write first JSON
     print("dump1090 started.")
     return proc
+
+def start_http_server():
+    """Serve dump1090's JSON directory on port 8080."""
+    handler = http.server.SimpleHTTPRequestHandler
+    handler.log_message = lambda *args: None  # Suppress access logs
+    os.chdir(DUMP1090_JSON_DIR)
+    server = http.server.HTTPServer(("localhost", 8080), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    print("HTTP server started on port 8080.")
+    return server
 
 dump1090_proc = None
 
@@ -56,6 +72,7 @@ def main():
     global dump1090_proc
     print("\nStarting Retro ADS-B Radar...")
     dump1090_proc = start_dump1090()
+    start_http_server()
     print(f"Location: {config.AREA_NAME} ({config.LAT}°, {config.LON}°)")
     print(f"Range: {config.RADIUS_NM} NM")
     print(f"Display: {config.SCREEN_WIDTH}x{config.SCREEN_HEIGHT} at {config.FPS} FPS")
