@@ -84,6 +84,13 @@ def main():
     pygame.font.init()
     utils.check_pygame_modules()
 
+    # Auto-detect screen resolution and scale everything accordingly
+    info = pygame.display.Info()
+    actual_w = info.current_w if info.current_w > 0 else config.SCREEN_WIDTH
+    actual_h = info.current_h if info.current_h > 0 else config.SCREEN_HEIGHT
+    print(f"Detected screen: {actual_w}x{actual_h}")
+    config.apply_scale(actual_w, actual_h)
+
     # Preload all required fonts into a local dictionary
     print("\nPreloading fonts...")
     font_cache = {

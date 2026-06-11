@@ -23,7 +23,7 @@ LON = config.getfloat('Location', 'LON', fallback=0.0)
 AREA_NAME = config.get('Location', 'AREA_NAME', fallback='UNKNOWN')
 RADIUS_NM = config.getint('Location', 'RADIUS_NM', fallback=60)
 
-# Display Settings
+# Display Settings (base values — scaled at runtime by apply_scale())
 SCREEN_WIDTH = config.getint('Display', 'SCREEN_WIDTH', fallback=960)
 SCREEN_HEIGHT = config.getint('Display', 'SCREEN_HEIGHT', fallback=640)
 FPS = config.getint('Display', 'FPS', fallback=6)
@@ -37,6 +37,31 @@ HEADER_FONT_SIZE = config.getint('Display', 'HEADER_FONT_SIZE', fallback=32)
 RADAR_FONT_SIZE = config.getint('Display', 'RADAR_FONT_SIZE', fallback=28)
 TABLE_FONT_SIZE = config.getint('Display', 'TABLE_FONT_SIZE', fallback=28)
 INSTRUCTION_FONT_SIZE = config.getint('Display', 'INSTRUCTION_FONT_SIZE', fallback=28)
+
+# Scale factor — updated by apply_scale() before the window is created
+SCALE = 1.0
+
+import sys as _sys
+
+def apply_scale(actual_w: int, actual_h: int):
+    """Rescale display values to match the actual screen resolution."""
+    import importlib
+    module = _sys.modules[__name__]
+
+    base_w, base_h = 960, 640
+    sx = actual_w / base_w
+    sy = actual_h / base_h
+    s = min(sx, sy)
+
+    module.SCALE = s
+    module.SCREEN_WIDTH = actual_w
+    module.SCREEN_HEIGHT = actual_h
+    module.TRAIL_MIN_LENGTH  = max(4, int(8  * s))
+    module.TRAIL_MAX_LENGTH  = max(8, int(25 * s))
+    module.HEADER_FONT_SIZE      = max(14, int(32 * s))
+    module.RADAR_FONT_SIZE       = max(12, int(28 * s))
+    module.TABLE_FONT_SIZE       = max(12, int(28 * s))
+    module.INSTRUCTION_FONT_SIZE = max(12, int(28 * s))
 
 # Colours
 BLACK = (0, 0, 0)
