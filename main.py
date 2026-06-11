@@ -149,7 +149,7 @@ def main():
 
         # Components
         radar.draw(tracker.aircraft, airports)
-        table.draw(tracker.aircraft, tracker.status, tracker.last_update)
+        table.draw(radar.painted_aircraft, tracker.status, tracker.last_update)
 
         # Instructions with clickable areas (centered under radar scope)
         quit_text = "Q/ESC: QUIT"
@@ -204,10 +204,11 @@ def main():
                 running = False
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_a:
                 if audio: audio.toggle()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
+            elif event.type in (pygame.MOUSEBUTTONDOWN,):
+                if radar.handle_event(event):
+                    airports = load_airports()  # reload for new range
                 mouse_pos = pygame.mouse.get_pos()
-                # Check for clicks on instruction text areas
-                if audio and audio_rect.collidepoint(mouse_pos):
+                if audio and audio_rect and audio_rect.collidepoint(mouse_pos):
                     audio.toggle()
                 elif quit_rect.collidepoint(mouse_pos):
                     running = False

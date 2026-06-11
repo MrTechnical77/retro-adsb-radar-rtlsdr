@@ -57,6 +57,8 @@ def _lerp_colour(a, b, t):
 DIM_AIRCRAFT = (0, 55, 0)
 DIM_MILITARY = (60, 0, 0)
 
+ZOOM_STEPS = [10, 20, 30, 50, 75, 100, 150, 200, 300]
+
 
 class RadarScope:
     """Radar display with animated sweep and painted aircraft contacts."""
@@ -69,14 +71,63 @@ class RadarScope:
         self.font      = utils.load_font(config.RADAR_FONT_SIZE)
 
         self.sweep_angle = 0.0
-        self.sweep_speed = 360.0 / config.SWEEP_PERIOD  # degrees / second
+        self.sweep_speed = 360.0 / config.SWEEP_PERIOD
         self._last_time  = time.time()
 
-        # hex_code -> {'x', 'y', 'aircraft', 'time'}
         self._painted: Dict[str, dict] = {}
+
+        # Zoom button rects — set during draw(), used for hit testing
+        self._btn_minus: Optional[pygame.Rect] = None
+        self._btn_plus:  Optional[pygame.Rect] = None
 
         self._bg_surf = None
         self._build_background()
+
+    # ------------------------------------------------------------------
+    # Zoom
+    # ------------------------------------------------------------------
+
+    @property
+    def painted_aircraft(self) -> List[Aircraft]:
+        """Aircraft currently visible on radar (last painted snapshot)."""
+        return [p['aircraft'] for p in self._painted.values()]
+
+    def _zoom_index(self) -> int:
+        """Return the index in ZOOM_STEPS closest to current RADIUS_NM."""
+        return min(range(len(ZOOM_STEPS)),
+                   key=lambda i: abs(ZOOM_STEPS[i] - config.RADIUS_NM))
+
+    def zoom_in(self) -> bool:
+        idx = self._zoom_index()
+        if idx > 0:
+            config.RADIUS_NM = ZOOM_STEPS[idx - 1]
+            self._painted.clear()
+            self._build_background()
+            return True
+        return False
+
+    def zoom_out(self) -> bool:
+        idx = self._zoom_index()
+        if idx < len(ZOOM_STEPS) - 1:
+            config.RADIUS_NM = ZOOM_STEPS[idx + 1]
+            self._painted.clear()
+            self._build_background()
+            return True
+        return False
+
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        """Handle click/scroll events. Returns True if zoom changed."""
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                if self._btn_minus and self._btn_minus.collidepoint(event.pos):
+                    return self.zoom_in()
+                if self._btn_plus and self._btn_plus.collidepoint(event.pos):
+                    return self.zoom_out()
+            elif event.button == 4:   # scroll up = zoom in
+                return self.zoom_in()
+            elif event.button == 5:   # scroll down = zoom out
+                return self.zoom_out()
+        return False
 
     # ------------------------------------------------------------------
     # Static background (rings + crosshairs) — built once
@@ -182,6 +233,30 @@ class RadarScope:
                 label = self.font.render(apt.ident, True, AIRPORT_COL)
                 self.screen.blit(label, (ax + 6, ay - label.get_height() // 2))
 
+    def _draw_zoom_buttons(self):
+        """Draw [-] RANGE [+] buttons below the radar scope."""
+        mouse_pos = pygame.mouse.get_pos()
+        btn_size  = max(28, int(32 * config.SCALE))
+        gap       = max(6,  int(8  * config.SCALE))
+        y         = self.center_y + self.radius + gap
+
+        label     = self.font.render(f"{config.RADIUS_NM}NM", True, config.AMBER)
+        lw        = label.get_width()
+        total_w   = btn_size + gap + lw + gap + btn_size
+        x_start   = self.center_x - total_w // 2
+
+        self._btn_minus = pygame.Rect(x_start, y, btn_size, btn_size)
+        self._btn_plus  = pygame.Rect(x_start + btn_size + gap + lw + gap, y, btn_size, btn_size)
+
+        for btn, symbol in ((self._btn_minus, "-"), (self._btn_plus, "+")):
+            hover  = btn.collidepoint(mouse_pos)
+            colour = config.BRIGHT_GREEN if hover else config.DIM_GREEN
+            pygame.draw.rect(self.screen, colour, btn, 1)
+            sym    = self.font.render(symbol, True, colour)
+            self.screen.blit(sym, sym.get_rect(center=btn.center))
+
+        self.screen.blit(label, (x_start + btn_size + gap, y + (btn_size - label.get_height()) // 2))
+
     def draw(self, aircraft_list: List[Aircraft], airport_list: List[Airport] = None):
         # 1. Static background
         bx = self.center_x - self.radius - 2
@@ -234,7 +309,10 @@ class RadarScope:
                 colour = _lerp_colour(DIM_AIRCRAFT, config.BRIGHT_GREEN, t)
                 self.draw_aircraft(ac, paint['x'], paint['y'], colour)
 
-        # 5. Sweep line on top of everything
+        # 5. Zoom buttons
+        self._draw_zoom_buttons()
+
+        # 6. Sweep line on top of everything
         self._draw_sweep()
 
 
