@@ -5,6 +5,8 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 import pygame
 import sys
 import time
+import subprocess
+import shutil
 from datetime import datetime
 from typing import Optional
 
@@ -14,9 +16,43 @@ from audio_manager import AudioManager
 from data_fetcher import AircraftTracker
 from ui_components import RadarScope, DataTable
 
+def find_dump1090():
+    """Find the dump1090 binary."""
+    # Check PATH first
+    path = shutil.which("dump1090")
+    if path:
+        return path
+    # Common locations
+    candidates = [
+        os.path.expanduser("~/dump1090/dump1090"),
+        "/usr/local/bin/dump1090",
+        "/usr/bin/dump1090",
+    ]
+    for c in candidates:
+        if os.path.isfile(c) and os.access(c, os.X_OK):
+            return c
+    return None
+
+def start_dump1090():
+    """Launch dump1090 as a background subprocess. Returns the process or None."""
+    binary = find_dump1090()
+    if not binary:
+        print("WARNING: dump1090 not found. Skipping auto-start.")
+        return None
+    print(f"Starting dump1090 from {binary}...")
+    proc = subprocess.Popen(
+        [binary, "--net", "--quiet"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
+    time.sleep(2)  # Give dump1090 time to initialise
+    print("dump1090 started.")
+    return proc
+
 def main():
     """Main application loop"""
     print("\nStarting Retro ADS-B Radar...")
+    dump1090_proc = start_dump1090()
     print(f"Location: {config.AREA_NAME} ({config.LAT}°, {config.LON}°)")
     print(f"Range: {config.RADIUS_NM} NM")
     print(f"Display: {config.SCREEN_WIDTH}x{config.SCREEN_HEIGHT} at {config.FPS} FPS")
@@ -160,6 +196,13 @@ def main():
     tracker.running = False
     if audio and audio.initialised:
         audio.shutdown()
+    if dump1090_proc and dump1090_proc.poll() is None:
+        print("Stopping dump1090...")
+        dump1090_proc.terminate()
+        try:
+            dump1090_proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            dump1090_proc.kill()
 
     print("Shutting down...")
     pygame.quit()
