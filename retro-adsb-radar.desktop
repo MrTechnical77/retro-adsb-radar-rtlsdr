@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Retro ADS-B Radar
+Comment=Retro-styled ADS-B aircraft radar
+Exec=/home/griffin/retro-adsb-radar-rtlsdr/launch.sh
+Icon=/home/griffin/retro-adsb-radar-rtlsdr/images/screenshot.png
+Terminal=false
+Type=Application
+Categories=Utility;
