@@ -14,6 +14,7 @@ from typing import Optional
 
 import config
 import utils
+from airport_data import load_airports
 from audio_manager import AudioManager
 from data_fetcher import AircraftTracker
 from ui_components import RadarScope, DataTable
@@ -73,6 +74,7 @@ def main():
     print("\nStarting Retro ADS-B Radar...")
     dump1090_proc = start_dump1090()
     start_http_server()
+    airports = load_airports()
     print(f"Location: {config.AREA_NAME} ({config.LAT}°, {config.LON}°)")
     print(f"Range: {config.RADIUS_NM} NM")
     print(f"Display: {config.SCREEN_WIDTH}x{config.SCREEN_HEIGHT} at {config.FPS} FPS")
@@ -139,7 +141,7 @@ def main():
         screen.blit(radar_title, radar_title_rect)
 
         # Components
-        radar.draw(tracker.aircraft)
+        radar.draw(tracker.aircraft, airports)
         table.draw(tracker.aircraft, tracker.status, tracker.last_update)
 
         # Instructions with clickable areas (centered under radar scope)

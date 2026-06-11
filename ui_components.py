@@ -5,6 +5,7 @@ from typing import List, Optional, Tuple
 
 import config
 from data_models import Aircraft
+from airport_data import Airport
 import utils
 
 class RadarScope:
@@ -43,7 +44,35 @@ class RadarScope:
         text = self.font.render(aircraft.callsign, True, colour)
         self.screen.blit(text, (x + 8, y - 12))
 
-    def draw(self, aircraft_list: List[Aircraft]):
+    def draw_airports(self, airport_list: List[Airport]):
+        """Draw airports and runways on the radar."""
+        AIRPORT_COLOUR = (180, 130, 40)   # dim amber
+        RUNWAY_COLOUR  = (220, 180, 60)   # brighter amber
+
+        for apt in airport_list:
+            pos = self.lat_lon_to_screen(apt.lat, apt.lon)
+            if pos is None:
+                continue
+            ax, ay = pos
+
+            if apt.runways:
+                # Draw each runway as a line between its two endpoints
+                for rwy in apt.runways:
+                    p1 = self.lat_lon_to_screen(rwy.he_lat, rwy.he_lon)
+                    p2 = self.lat_lon_to_screen(rwy.le_lat, rwy.le_lon)
+                    if p1 and p2:
+                        # Line thickness: 1 for narrow runways, 2 for wide (>=100 ft)
+                        thickness = 2 if rwy.width_ft >= 100 else 1
+                        pygame.draw.line(self.screen, RUNWAY_COLOUR, p1, p2, thickness)
+            else:
+                # No runway data — draw a small square
+                pygame.draw.rect(self.screen, AIRPORT_COLOUR, (ax - 4, ay - 4, 8, 8), 1)
+
+            # Label: use a small font offset so it doesn't overlap runways
+            label = self.font.render(apt.ident, True, AIRPORT_COLOUR)
+            self.screen.blit(label, (ax + 6, ay - 10))
+
+    def draw(self, aircraft_list: List[Aircraft], airport_list: List[Airport] = None):
         """Draw the complete radar scope"""
         for ring in range(1, 4):
             ring_radius = int((ring / 3) * self.radius)
@@ -55,6 +84,9 @@ class RadarScope:
         pygame.draw.line(self.screen, config.DIM_GREEN, (self.center_x - self.radius, self.center_y), (self.center_x + self.radius, self.center_y), 2)
         pygame.draw.line(self.screen, config.DIM_GREEN, (self.center_x, self.center_y - self.radius), (self.center_x, self.center_y + self.radius), 2)
         pygame.draw.circle(self.screen, config.BRIGHT_GREEN, (self.center_x, self.center_y), self.radius, 3)
+
+        if airport_list:
+            self.draw_airports(airport_list)
 
         blink_state = int(time.time() * 2) % 2
         for aircraft in aircraft_list:
