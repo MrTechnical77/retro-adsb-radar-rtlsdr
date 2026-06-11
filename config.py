@@ -12,6 +12,10 @@ FETCH_INTERVAL = config.getint('General', 'FETCH_INTERVAL', fallback=10)
 MIL_PREFIX_LIST = [prefix.strip() for prefix in config.get('General', 'MIL_PREFIX_LIST', fallback='7CF').split(',')]
 TAR1090_URL = config.get('General', 'TAR1090_URL', fallback='http://localhost/data/aircraft.json')
 BLINK_MILITARY = config.getboolean('General', 'BLINK_MILITARY', fallback=True)
+SWEEP_PERIOD = config.getfloat('General', 'SWEEP_PERIOD', fallback=6.0)
+# How long (seconds) a contact stays visible after being painted.
+# Set to 0 to show contacts only at the moment of sweep.
+CONTACT_PERSISTENCE = config.getfloat('General', 'CONTACT_PERSISTENCE', fallback=5.0)
 
 # Audio Settings
 ATC_STREAM_URL = config.get('Audio', 'ATC_STREAM_URL', fallback='')

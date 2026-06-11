@@ -54,11 +54,8 @@ def _lerp_colour(a, b, t):
 # Radar scope
 # ---------------------------------------------------------------------------
 
-SWEEP_PERIOD   = 6.0    # seconds per full rotation
-SWEEP_TRAIL    = 50.0   # degrees of fading trail behind the sweep line
-SWEEP_STEPS    = 20     # number of lines used to draw the trail
-DIM_AIRCRAFT   = (0, 55, 0)     # colour of a fully-faded aircraft contact
-DIM_MILITARY   = (60, 0, 0)
+DIM_AIRCRAFT = (0, 55, 0)
+DIM_MILITARY = (60, 0, 0)
 
 
 class RadarScope:
@@ -71,8 +68,8 @@ class RadarScope:
         self.radius    = radius
         self.font      = utils.load_font(config.RADAR_FONT_SIZE)
 
-        self.sweep_angle = 0.0          # degrees clockwise from north
-        self.sweep_speed = 360.0 / SWEEP_PERIOD  # degrees / second
+        self.sweep_angle = 0.0
+        self.sweep_speed = 360.0 / config.SWEEP_PERIOD  # degrees / second
         self._last_time  = time.time()
 
         # hex_code -> {'x', 'y', 'aircraft', 'time'}
@@ -145,15 +142,10 @@ class RadarScope:
 
     def _draw_sweep(self):
         cx, cy, r = self.center_x, self.center_y, self.radius
-        for i in range(SWEEP_STEPS + 1):
-            frac = i / SWEEP_STEPS          # 0 = trailing end, 1 = leading edge
-            angle_deg = self.sweep_angle - SWEEP_TRAIL * (1.0 - frac)
-            angle_rad = math.radians(angle_deg - 90)   # -90: north = up
-            brightness = int(20 + 210 * frac)
-            colour = (0, brightness, 0)
-            ex = int(cx + r * math.cos(angle_rad))
-            ey = int(cy + r * math.sin(angle_rad))
-            pygame.draw.aaline(self.screen, colour, (cx, cy), (ex, ey))
+        angle_rad = math.radians(self.sweep_angle - 90)
+        ex = int(cx + r * math.cos(angle_rad))
+        ey = int(cy + r * math.sin(angle_rad))
+        pygame.draw.aaline(self.screen, config.BRIGHT_GREEN, (cx, cy), (ex, ey))
 
     def draw_aircraft(self, aircraft: Aircraft, x: int, y: int, colour: tuple):
         dot_r = max(3, int(5 * config.SCALE))
@@ -223,12 +215,15 @@ class RadarScope:
         blink_state = int(time.time() * 2) % 2
         for paint in self._painted.values():
             age = now - paint['time']
-            # Full brightness for first 15% of sweep period, then fade
-            hold = SWEEP_PERIOD * 0.15
-            if age < hold:
-                t = 1.0
+            persistence = config.CONTACT_PERSISTENCE
+            if persistence <= 0:
+                t = 1.0 if age < 0.1 else 0.0
             else:
-                t = max(0.0, 1.0 - (age - hold) / (SWEEP_PERIOD * 0.9))
+                hold = persistence * 0.15
+                if age < hold:
+                    t = 1.0
+                else:
+                    t = max(0.0, 1.0 - (age - hold) / (persistence * 0.85))
 
             ac = paint['aircraft']
             if ac.is_military:
