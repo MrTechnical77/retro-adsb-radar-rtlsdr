@@ -125,14 +125,22 @@ class SettingsMenu:
         self.font_bold  = utils.load_font(max(14, int(config.RADAR_FONT_SIZE * 0.9)))
         self.font_small = utils.load_font(max(11, int(config.RADAR_FONT_SIZE * 0.7)))
 
-        self._rows: list    = []   # built on open
-        self._active_idx    = None # index into self._rows for the active text field
+        self._rows: list    = []
+        self._active_idx    = None
         self._scroll_offset = 0
+        self._max_scroll    = 0
+        self._row_h         = 1   # set during draw
         self._cursor_time   = 0.0
         self._error_msg     = ''
 
         self._save_rect   = None
         self._cancel_rect = None
+
+        # Touch drag state
+        self._drag_start_y      = None
+        self._drag_start_offset = 0
+        self._is_dragging       = False
+        DRAG_THRESHOLD          = 10
 
         # Overlay surface
         self._overlay = pygame.Surface(
@@ -167,28 +175,50 @@ class SettingsMenu:
                 })
 
     # ------------------------------------------------------------------
+    DRAG_THRESHOLD = 10
+
+    def _clamp_scroll(self):
+        self._scroll_offset = max(0, min(self._max_scroll, self._scroll_offset))
+
     def handle_event(self, event: pygame.event.Event) -> dict:
-        """
-        Process an event. Returns a dict of refresh actions needed:
-          {'reload_airports', 'rebuild_radar', 'update_sweep'}
-        Returns None if no save happened; returns empty dict on save with no relevant changes.
-        Raises 'close' string if user cancelled.
-        """
         if not self.is_open:
             return None
 
         if event.type == pygame.KEYDOWN:
             return self._handle_key(event)
 
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            return self._handle_click(event.pos)
+        # Mouse wheel scroll
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button in (4, 5):
+            self._scroll_offset += -1 if event.button == 4 else 1
+            self._clamp_scroll()
+            return None
 
-        # Scroll via mouse wheel
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 4:
-                self._scroll_offset = max(0, self._scroll_offset - 1)
-            elif event.button == 5:
-                self._scroll_offset += 1
+        # Touch/drag scroll — track press start
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            self._drag_start_y      = event.pos[1]
+            self._drag_start_offset = self._scroll_offset
+            self._is_dragging       = False
+            return None
+
+        # Drag in progress
+        if event.type == pygame.MOUSEMOTION and self._drag_start_y is not None:
+            delta_px = self._drag_start_y - event.pos[1]
+            if abs(delta_px) > self.DRAG_THRESHOLD:
+                self._is_dragging = True
+            if self._is_dragging:
+                delta_rows = delta_px / max(1, self._row_h)
+                self._scroll_offset = self._drag_start_offset + delta_rows
+                self._clamp_scroll()
+            return None
+
+        # Release — if not a drag, treat as a click
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            was_dragging       = self._is_dragging
+            self._drag_start_y = None
+            self._is_dragging  = False
+            if not was_dragging:
+                return self._handle_click(event.pos)
+            return None
 
         return None
 
@@ -296,6 +326,9 @@ class SettingsMenu:
         W = self.screen.get_width()
         H = self.screen.get_height()
 
+        row_h = self.font.get_height() + self.ROW_PAD * 2
+        self._row_h = row_h
+
         # Semi-transparent background
         self._overlay.fill((0, 0, 0, self.OVERLAY_ALPHA))
         self.screen.blit(self._overlay, (0, 0))
@@ -316,8 +349,13 @@ class SettingsMenu:
         # Content area
         content_y_start = panel_y + 44
         content_h       = panel_h - 44 - 50  # leave room for buttons
-        row_h = self.font.get_height() + self.ROW_PAD * 2
         col_split = panel_x + panel_w // 2
+
+        # Compute max scroll so we can't scroll past the last row
+        total_rows_h = len(self._rows) * row_h
+        visible_rows = content_h // row_h
+        self._max_scroll = max(0, len(self._rows) - visible_rows)
+        self._clamp_scroll()
 
         # Clipping rect for content
         clip = pygame.Rect(panel_x + 4, content_y_start, panel_w - 8, content_h)
@@ -381,6 +419,18 @@ class SettingsMenu:
                 y += row_h
 
         self.screen.set_clip(None)
+
+        # Scroll indicator bar (right edge of panel)
+        if self._max_scroll > 0:
+            bar_x     = panel_x + panel_w - 6
+            bar_top   = content_y_start
+            bar_total = content_h
+            thumb_h   = max(20, int(bar_total * (visible_rows / len(self._rows))))
+            thumb_y   = bar_top + int((bar_total - thumb_h) * (self._scroll_offset / self._max_scroll))
+            pygame.draw.rect(self.screen, (30, 30, 30),
+                             pygame.Rect(bar_x, bar_top, 4, bar_total))
+            pygame.draw.rect(self.screen, config.DIM_GREEN,
+                             pygame.Rect(bar_x, thumb_y, 4, thumb_h))
 
         # Error message
         if self._error_msg:

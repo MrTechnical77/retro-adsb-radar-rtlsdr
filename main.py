@@ -208,7 +208,10 @@ def main():
                 running = False
 
             # While settings are open, route all input there
-            elif settings.is_open:
+            elif settings.is_open and event.type in (
+                pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN,
+                pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION
+            ):
                 result = settings.handle_event(event)
                 if isinstance(result, set):
                     # Settings were saved — apply side effects
