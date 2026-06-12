@@ -212,14 +212,20 @@ class RadarScope:
             ty = y + trail * math.cos(track_rad)
             _aa_line(self.screen, colour, (int(tx), int(ty)), (x, y))
 
-        label = self.font.render(aircraft.callsign, True, colour)
-        self.screen.blit(label, (x + dot_r + 3, y - label.get_height() // 2))
+        if config.RADIUS_NM <= 50 or aircraft.is_military:
+            label = self.font.render(aircraft.callsign, True, colour)
+            self.screen.blit(label, (x + dot_r + 3, y - label.get_height() // 2))
 
     def draw_airports(self, airport_list: List[Airport]):
         AIRPORT_COL = (180, 130, 40)
         RUNWAY_COL  = (220, 180, 60)
 
+        labelled_only = config.RADIUS_NM > 30
+
         for apt in airport_list:
+            if labelled_only and apt.apt_type not in ('large_airport', 'medium_airport'):
+                continue
+
             pos = self.lat_lon_to_screen(apt.lat, apt.lon)
             if pos is None:
                 continue
