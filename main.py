@@ -71,14 +71,42 @@ def start_http_server():
     return server
 
 dump1090_proc = None
+http_server   = None
+
+def toggle_data_source():
+    """Hot-swap between local RTL-SDR (dump1090) and internet fallback."""
+    global dump1090_proc, http_server
+
+    if config.USE_INTERNET_FALLBACK:
+        # Try to switch back to SDR
+        proc = start_dump1090()
+        if proc is None:
+            print("Cannot switch to SDR — no device found.")
+            return
+        dump1090_proc = proc
+        if http_server is None:
+            http_server = start_http_server()
+        config.USE_INTERNET_FALLBACK = False
+        print("Switched to RTL-SDR source.")
+    else:
+        # Switch to internet
+        if dump1090_proc and dump1090_proc.poll() is None:
+            dump1090_proc.terminate()
+            try:
+                dump1090_proc.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                dump1090_proc.kill()
+        dump1090_proc = None
+        config.USE_INTERNET_FALLBACK = True
+        print("Switched to internet ADS-B source.")
 
 def main():
     """Main application loop"""
-    global dump1090_proc
+    global dump1090_proc, http_server
     print("\nStarting Retro ADS-B Radar...")
     dump1090_proc = start_dump1090()
     if dump1090_proc:
-        start_http_server()
+        http_server = start_http_server()
     else:
         print("Falling back to internet ADS-B data via adsb.lol")
         config.USE_INTERNET_FALLBACK = True
@@ -160,15 +188,19 @@ def main():
         radar.draw(tracker.aircraft, airports)
         table.draw(radar.painted_aircraft, tracker.status, tracker.last_update)
 
-        # Data source indicator (top-left corner)
+        # Data source indicator / toggle button (top-left corner)
         if config.USE_INTERNET_FALLBACK:
             src_text   = "◉ NET"
             src_colour = config.AMBER
         else:
             src_text   = "◉ SDR"
             src_colour = config.BRIGHT_GREEN
-        src_surf = font_cache['instruction'].render(src_text, True, src_colour)
-        screen.blit(src_surf, (10, 10))
+        src_surf      = font_cache['instruction'].render(src_text, True, src_colour)
+        src_btn_rect  = src_surf.get_rect(x=10, y=10)
+        # Brighten on hover to show it's clickable
+        if src_btn_rect.collidepoint(pygame.mouse.get_pos()):
+            src_surf = font_cache['instruction'].render(src_text, True, config.BRIGHT_GREEN)
+        screen.blit(src_surf, src_btn_rect)
 
         # Settings button (below source indicator)
         mouse_pos  = pygame.mouse.get_pos()
@@ -237,6 +269,8 @@ def main():
                     mouse_pos = pygame.mouse.get_pos()
                     if close_rect.collidepoint(mouse_pos):
                         running = False
+                    elif src_btn_rect.collidepoint(mouse_pos):
+                        toggle_data_source()
                     elif settings_btn_rect.collidepoint(mouse_pos):
                         settings.open()
                     elif audio and audio_rect and audio_rect.collidepoint(mouse_pos):
