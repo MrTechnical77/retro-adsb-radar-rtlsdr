@@ -159,6 +159,16 @@ def main():
         table.draw(radar.painted_aircraft, tracker.status, tracker.last_update)
 
         # Instructions with clickable areas (centered under radar scope)
+        # Data source indicator (top-left corner)
+        if config.USE_INTERNET_FALLBACK:
+            src_text   = "◉ NET"
+            src_colour = config.AMBER
+        else:
+            src_text   = "◉ SDR"
+            src_colour = config.BRIGHT_GREEN
+        src_surf = font_cache['instruction'].render(src_text, True, src_colour)
+        screen.blit(src_surf, (10, 10))
+
         # Close button (top-right corner)
         btn_size = max(36, int(44 * config.SCALE))
         close_rect = pygame.Rect(config.SCREEN_WIDTH - btn_size - 8, 8, btn_size, btn_size)
