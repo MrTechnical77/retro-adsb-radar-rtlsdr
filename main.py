@@ -18,6 +18,7 @@ from airport_data import load_airports
 from audio_manager import AudioManager
 from data_fetcher import AircraftTracker
 from ui_components import RadarScope, DataTable
+from settings_menu import SettingsMenu
 
 def find_dump1090():
     """Find the dump1090 binary."""
@@ -120,9 +121,10 @@ def main():
 
     # Create Components
     radar_size = min(config.SCREEN_HEIGHT - 120, config.SCREEN_WIDTH // 2 - 50) // 2
-    radar = RadarScope(screen, config.SCREEN_WIDTH // 4, config.SCREEN_HEIGHT // 2 + 35, radar_size)
-    table = DataTable(screen, config.SCREEN_WIDTH // 2 + 20, 80, config.SCREEN_WIDTH // 2 - 30, config.SCREEN_HEIGHT - 100)
-    
+    radar    = RadarScope(screen, config.SCREEN_WIDTH // 4, config.SCREEN_HEIGHT // 2 + 35, radar_size)
+    table    = DataTable(screen, config.SCREEN_WIDTH // 2 + 20, 80, config.SCREEN_WIDTH // 2 - 30, config.SCREEN_HEIGHT - 100)
+    settings = SettingsMenu(screen)
+
     # Initialise Audio and Data Tracker
     audio = AudioManager(config.ATC_STREAM_URL)
     if audio.initialise() and config.ATC_AUTO_START:
@@ -158,7 +160,6 @@ def main():
         radar.draw(tracker.aircraft, airports)
         table.draw(radar.painted_aircraft, tracker.status, tracker.last_update)
 
-        # Instructions with clickable areas (centered under radar scope)
         # Data source indicator (top-left corner)
         if config.USE_INTERNET_FALLBACK:
             src_text   = "◉ NET"
@@ -169,10 +170,21 @@ def main():
         src_surf = font_cache['instruction'].render(src_text, True, src_colour)
         screen.blit(src_surf, (10, 10))
 
+        # Settings button (below source indicator)
+        mouse_pos  = pygame.mouse.get_pos()
+        set_surf   = font_cache['instruction'].render('⚙ SET', True,
+                     config.BRIGHT_GREEN if pygame.Rect(10, 36, 80, 24).collidepoint(mouse_pos)
+                     else config.DIM_GREEN)
+        settings_btn_rect = set_surf.get_rect(x=10, y=36)
+        screen.blit(set_surf, settings_btn_rect)
+
+        # Settings overlay (drawn on top of everything while open)
+        dt = clock.get_time() / 1000.0
+        settings.draw(dt)
+
         # Close button (top-right corner)
         btn_size = max(36, int(44 * config.SCALE))
         close_rect = pygame.Rect(config.SCREEN_WIDTH - btn_size - 8, 8, btn_size, btn_size)
-        mouse_pos = pygame.mouse.get_pos()
         close_col = config.BRIGHT_GREEN if close_rect.collidepoint(mouse_pos) else config.DIM_GREEN
         pygame.draw.rect(screen, close_col, close_rect, 2)
         x_surf = font_cache['header'].render("X", True, close_col)
@@ -192,25 +204,45 @@ def main():
 
         # Event handling
         for event in pygame.event.get():
-            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key in (pygame.K_q, pygame.K_ESCAPE)):
+            if event.type == pygame.QUIT:
                 running = False
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_a:
-                if audio: audio.toggle()
-            elif event.type in (pygame.MOUSEBUTTONDOWN,):
-                if radar.handle_event(event):
-                    airports = load_airports()  # reload for new range
-                mouse_pos = pygame.mouse.get_pos()
-                if close_rect.collidepoint(mouse_pos):
-                    running = False
-                elif audio and audio_rect and audio_rect.collidepoint(mouse_pos):
-                    audio.toggle()
-                elif quit_rect.collidepoint(mouse_pos):
-                    running = False
-                last_mouse_move = time.time()
-                pygame.mouse.set_visible(True)
-            elif event.type in (pygame.MOUSEMOTION, pygame.MOUSEBUTTONUP):
-                last_mouse_move = time.time()
-                pygame.mouse.set_visible(True)
+
+            # While settings are open, route all input there
+            elif settings.is_open:
+                result = settings.handle_event(event)
+                if isinstance(result, set):
+                    # Settings were saved — apply side effects
+                    if 'reload_airports' in result:
+                        airports = load_airports()
+                    if 'rebuild_radar' in result:
+                        radar._build_background()
+                    if 'update_sweep' in result:
+                        radar.sweep_speed = 360.0 / config.SWEEP_PERIOD
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    settings.close()
+
+            else:
+                if event.type == pygame.KEYDOWN:
+                    if event.key in (pygame.K_q, pygame.K_ESCAPE):
+                        running = False
+                    elif event.key == pygame.K_a:
+                        if audio: audio.toggle()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if not settings.is_open:
+                        if radar.handle_event(event):
+                            airports = load_airports()
+                    mouse_pos = pygame.mouse.get_pos()
+                    if close_rect.collidepoint(mouse_pos):
+                        running = False
+                    elif settings_btn_rect.collidepoint(mouse_pos):
+                        settings.open()
+                    elif audio and audio_rect and audio_rect.collidepoint(mouse_pos):
+                        audio.toggle()
+                    last_mouse_move = time.time()
+                    pygame.mouse.set_visible(True)
+                elif event.type in (pygame.MOUSEMOTION, pygame.MOUSEBUTTONUP):
+                    last_mouse_move = time.time()
+                    pygame.mouse.set_visible(True)
 
         # Update display
         pygame.display.flip()
