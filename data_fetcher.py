@@ -22,7 +22,7 @@ class AircraftTracker:
             response.raise_for_status()
             data = response.json()
             aircraft_list = []
-            for ac_data in data.get('aircraft', []):
+            for ac_data in data.get('aircraft', data.get('ac', [])):
                 ac = Aircraft.from_dict(ac_data)
                 if ac:
                     aircraft_list.append(ac)

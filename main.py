@@ -39,10 +39,10 @@ def find_dump1090():
 DUMP1090_JSON_DIR = "/tmp/dump1090"
 
 def start_dump1090():
-    """Launch dump1090 as a background subprocess. Returns the process or None."""
+    """Launch dump1090. Returns the process, or None if RTL-SDR not available."""
     binary = find_dump1090()
     if not binary:
-        print("WARNING: dump1090 not found. Skipping auto-start.")
+        print("WARNING: dump1090 not found.")
         return None
     os.makedirs(DUMP1090_JSON_DIR, exist_ok=True)
     print(f"Starting dump1090 from {binary}...")
@@ -51,7 +51,10 @@ def start_dump1090():
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL
     )
-    time.sleep(3)  # Give dump1090 time to initialise and write first JSON
+    time.sleep(3)
+    if proc.poll() is not None:
+        print("WARNING: dump1090 exited early — RTL-SDR likely not connected.")
+        return None
     print("dump1090 started.")
     return proc
 
@@ -73,7 +76,15 @@ def main():
     global dump1090_proc
     print("\nStarting Retro ADS-B Radar...")
     dump1090_proc = start_dump1090()
-    start_http_server()
+    if dump1090_proc:
+        start_http_server()
+    else:
+        fallback_url = (
+            f"https://api.adsb.lol/v2/lat/{config.LAT}/lon/{config.LON}"
+            f"/dist/{config.RADIUS_NM}"
+        )
+        print(f"Falling back to internet ADS-B data: {fallback_url}")
+        config.TAR1090_URL = fallback_url
     airports = load_airports()
     print(f"Location: {config.AREA_NAME} ({config.LAT}°, {config.LON}°)")
     print(f"Range: {config.RADIUS_NM} NM")
