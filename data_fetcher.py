@@ -17,8 +17,12 @@ class AircraftTracker:
     def fetch_data(self) -> List[Aircraft]:
         """Fetch aircraft from local tar1090"""
         try:
-            print(f"Fetching aircraft data from {config.TAR1090_URL}...")
-            response = requests.get(config.TAR1090_URL, timeout=10)
+            url = (
+                f"https://api.adsb.lol/v2/lat/{config.LAT}/lon/{config.LON}/dist/{config.RADIUS_NM}"
+                if config.USE_INTERNET_FALLBACK else config.TAR1090_URL
+            )
+            print(f"Fetching aircraft data from {url}...")
+            response = requests.get(url, timeout=10)
             response.raise_for_status()
             data = response.json()
             aircraft_list = []

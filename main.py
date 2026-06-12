@@ -79,12 +79,8 @@ def main():
     if dump1090_proc:
         start_http_server()
     else:
-        fallback_url = (
-            f"https://api.adsb.lol/v2/lat/{config.LAT}/lon/{config.LON}"
-            f"/dist/{config.RADIUS_NM}"
-        )
-        print(f"Falling back to internet ADS-B data: {fallback_url}")
-        config.TAR1090_URL = fallback_url
+        print("Falling back to internet ADS-B data via adsb.lol")
+        config.USE_INTERNET_FALLBACK = True
     airports = load_airports()
     print(f"Location: {config.AREA_NAME} ({config.LAT}°, {config.LON}°)")
     print(f"Range: {config.RADIUS_NM} NM")

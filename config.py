@@ -14,6 +14,7 @@ TAR1090_URL = config.get('General', 'TAR1090_URL', fallback='http://localhost/da
 BLINK_MILITARY = config.getboolean('General', 'BLINK_MILITARY', fallback=True)
 SHOW_AIRCRAFT_TRAILS = config.getboolean('General', 'SHOW_AIRCRAFT_TRAILS', fallback=True)
 SWEEP_PERIOD = config.getfloat('General', 'SWEEP_PERIOD', fallback=6.0)
+USE_INTERNET_FALLBACK = False  # Set to True at runtime when no RTL-SDR is found
 # How long (seconds) a contact stays visible after being painted.
 # Set to 0 to show contacts only at the moment of sweep.
 CONTACT_PERSISTENCE = config.getfloat('General', 'CONTACT_PERSISTENCE', fallback=5.0)
