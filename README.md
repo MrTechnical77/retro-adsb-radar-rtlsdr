@@ -11,6 +11,8 @@ This is a fork of [nicespoon/retro-adsb-radar](https://github.com/nicespoon/retr
 - **Auto-scaling display** — adapts to any screen resolution automatically
 - **Anti-aliased rendering** — smooth circles and lines via pygame.gfxdraw
 
+![Demo](images/demo.gif)
+
 ![Retro ADS-B Radar Screenshot](images/screenshot.png)
 
 ## Hardware Requirements
@@ -122,6 +124,16 @@ Zoom can be changed live using the `[-]` and `[+]` buttons displayed below the r
 ## Airport overlay
 
 On first run, the app downloads airport and runway data from [OurAirports](https://ourairports.com/) and caches it to `~/.cache/retro-adsb-radar/`. Airports within your radar range are drawn on the scope in amber — large and medium airports show runway shapes and ICAO labels, small airports show as squares.
+
+## Demo mode
+
+`demo.py` runs a self-contained demo with simulated aircraft — no RTL-SDR required. It plays through a 52-second sequence highlighting every major feature, then loops indefinitely.
+
+```bash
+python3 demo.py
+```
+
+On first run it automatically records the sequence and saves `images/demo.gif` (the animation embedded at the top of this README). To regenerate it after making UI changes, just run `demo.py` again and wait for the first cycle to complete. Pass `--no-record` to skip recording.
 
 ## Troubleshooting
 
