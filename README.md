@@ -1,20 +1,20 @@
 # Retro ADS-B Radar ✈
 
-Aircraft radar display built with Python and Pygame. Visualises real-time aircraft positions from a local RTL-SDR dongle with a retro green-on-black radar aesthetic.
+Aircraft radar display built with Python and Pygame. Visualises real-time aircraft positions with a retro green-on-black radar aesthetic.
 
-This is a fork of [nicespoon/retro-adsb-radar](https://github.com/nicespoon/retro-adsb-radar), heavily extended with new features.
+This is a fork of [nicespoon/retro-adsb-radar](https://github.com/nicespoon/retro-adsb-radar). The original pulls aircraft data from the internet. **This fork is built around collecting your own ADS-B data** using an RTL-SDR dongle and a 1090 MHz antenna — the app automatically starts and manages [dump1090](https://github.com/flightaware/dump1090) in the background, so you're decoding real aircraft transponder signals directly from the air rather than relying on a third-party feed.
 
 ![Demo](images/demo.gif)
 
 ## What this fork adds
 
+**RTL-SDR / dump1090 integration**
+- **dump1090 auto-start** — the app launches and manages dump1090 automatically on startup; no separate terminal or setup required; closing the app stops it cleanly
+- **Internet fallback** — if no RTL-SDR dongle is detected, automatically falls back to live data from [adsb.lol](https://adsb.lol) (no API key required) so the app is still useful without hardware
+- **Hot-swap SDR ↔ NET** — tap the `◉ SDR` / `◉ NET` button at runtime to switch between your local antenna feed and the internet source without restarting
+
 **Radar behaviour**
 - **Animated sweep** — rotating sweep line paints contacts as it passes, just like real radar; contacts fade between sweeps over a configurable persistence window
-
-**Data sources**
-- **dump1090 auto-start** — the app launches and manages dump1090 automatically; no separate setup required; closing the app stops it cleanly
-- **Internet fallback** — if no RTL-SDR is detected, automatically falls back to live data from [adsb.lol](https://adsb.lol) (no API key required)
-- **Hot-swap SDR ↔ NET** — tap the `◉ SDR` / `◉ NET` button at runtime to switch data sources without restarting
 
 **Display**
 - **Airport overlay** — airports within radar range drawn in amber with runway shapes to scale; labels on large and medium airports; small airports suppressed past 30 NM
