@@ -10,8 +10,6 @@ This is a fork of [nicespoon/retro-adsb-radar](https://github.com/nicespoon/retr
 
 **Radar behaviour**
 - **Animated sweep** — rotating sweep line paints contacts as it passes, just like real radar; contacts fade between sweeps over a configurable persistence window
-- **Aircraft trails** — direction/speed trail lines on each contact, length proportional to speed; configurable or disableable from `config.ini`
-- **Military highlighting** — contacts whose ICAO hex prefix matches a configurable list blink red and are always labelled, regardless of zoom level
 
 **Data sources**
 - **dump1090 auto-start** — the app launches and manages dump1090 automatically; no separate setup required; closing the app stops it cleanly
@@ -28,9 +26,6 @@ This is a fork of [nicespoon/retro-adsb-radar](https://github.com/nicespoon/retr
 - **Live settings menu** — tap `⚙ SET` to open an in-app overlay for editing any `config.ini` value; changes apply instantly without restarting
 - **Close button** — on-screen `X` button for touchscreen users; `Q` / `ESC` also quits
 - **Desktop launcher** — `.desktop` file and `launch.sh` script for launching from the Raspberry Pi start menu
-
-**ATC audio**
-- Optional ATC audio stream — configure a live stream URL in `config.ini` and toggle it in-app with the `A` key or on-screen button
 
 ## Hardware Requirements
 
