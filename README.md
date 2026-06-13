@@ -1,19 +1,36 @@
 # Retro ADS-B Radar ✈
 
-Aircraft radar display built with Python and Pygame. Visualises real-time aircraft positions and metadata from a local RTL-SDR dongle, with a retro interface.
+Aircraft radar display built with Python and Pygame. Visualises real-time aircraft positions from a local RTL-SDR dongle with a retro green-on-black radar aesthetic.
 
-This is a fork of [nicespoon/retro-adsb-radar](https://github.com/nicespoon/retro-adsb-radar) with the following additions:
-
-- **dump1090 auto-start** — no separate ADS-B decoder setup required; the app launches and manages dump1090 automatically
-- **Animated radar sweep** — rotating sweep line with aircraft contacts that paint and fade like real radar
-- **Airport overlay** — airports within radar range drawn on the scope with runway shapes
-- **In-app zoom control** — tap `[-]` / `[+]` buttons on the radar to change range without editing config
-- **Auto-scaling display** — adapts to any screen resolution automatically
-- **Anti-aliased rendering** — smooth circles and lines via pygame.gfxdraw
+This is a fork of [nicespoon/retro-adsb-radar](https://github.com/nicespoon/retro-adsb-radar), heavily extended with new features.
 
 ![Demo](images/demo.gif)
 
-![Retro ADS-B Radar Screenshot](images/screenshot.png)
+## What this fork adds
+
+**Radar behaviour**
+- **Animated sweep** — rotating sweep line paints contacts as it passes, just like real radar; contacts fade between sweeps over a configurable persistence window
+- **Aircraft trails** — direction/speed trail lines on each contact, length proportional to speed; configurable or disableable from `config.ini`
+- **Military highlighting** — contacts whose ICAO hex prefix matches a configurable list blink red and are always labelled, regardless of zoom level
+
+**Data sources**
+- **dump1090 auto-start** — the app launches and manages dump1090 automatically; no separate setup required; closing the app stops it cleanly
+- **Internet fallback** — if no RTL-SDR is detected, automatically falls back to live data from [adsb.lol](https://adsb.lol) (no API key required)
+- **Hot-swap SDR ↔ NET** — tap the `◉ SDR` / `◉ NET` button at runtime to switch data sources without restarting
+
+**Display**
+- **Airport overlay** — airports within radar range drawn in amber with runway shapes to scale; labels on large and medium airports; small airports suppressed past 30 NM
+- **In-app zoom** — tap `[-]` / `[+]` below the radar or use the scroll wheel to change range (10–300 NM presets); airport data reloads automatically on zoom
+- **Anti-aliased rendering** — smooth circles, lines, and text via `pygame.gfxdraw`
+- **Auto-scaling** — detects screen resolution at startup and scales all UI elements, fonts, and trail lengths accordingly; works on the Pi 7" touchscreen and larger monitors
+
+**Controls & settings**
+- **Live settings menu** — tap `⚙ SET` to open an in-app overlay for editing any `config.ini` value; changes apply instantly without restarting
+- **Close button** — on-screen `X` button for touchscreen users; `Q` / `ESC` also quits
+- **Desktop launcher** — `.desktop` file and `launch.sh` script for launching from the Raspberry Pi start menu
+
+**ATC audio**
+- Optional ATC audio stream — configure a live stream URL in `config.ini` and toggle it in-app with the `A` key or on-screen button
 
 ## Hardware Requirements
 
@@ -63,7 +80,7 @@ Set your latitude, longitude, and area name in `config.ini`, then run:
 python3 main.py
 ```
 
-The app will automatically start dump1090, wait for it to initialise, then launch the radar UI. Closing the app also stops dump1090.
+The app will automatically start dump1090, wait for it to initialise, then launch the radar UI. Closing the app also stops dump1090. If no dongle is connected it falls back to internet data automatically.
 
 ### 4. Optional: launch from the desktop
 
@@ -76,14 +93,14 @@ The app will appear in the Raspberry Pi start menu under Accessories.
 
 ## Configuration
 
-All settings live in `config.ini`.
+All settings live in `config.ini` and can also be changed live from the in-app settings menu.
 
 ```ini
 [General]
-FETCH_INTERVAL = 10           # How often to poll dump1090 for new data (seconds)
+FETCH_INTERVAL = 10           # How often to poll for new data (seconds)
 MIL_PREFIX_LIST = 7CF         # Comma-separated ICAO hex prefixes to flag as military
-TAR1090_URL = http://localhost:8080/aircraft.json  # dump1090 JSON endpoint (don't change)
-BLINK_MILITARY = true         # Blink military contacts on sweep
+TAR1090_URL = http://localhost:8080/aircraft.json
+BLINK_MILITARY = true         # Blink military contacts red on sweep
 SHOW_AIRCRAFT_TRAILS = true   # Show speed/direction trail lines on contacts
 SWEEP_PERIOD = 6.0            # Seconds per full radar sweep rotation
 CONTACT_PERSISTENCE = 5.0     # How long (seconds) a contact stays visible after being swept
@@ -97,8 +114,7 @@ AUTO_START = false            # Start ATC stream automatically on launch
 LAT = 0.0                     # Your latitude
 LON = 0.0                     # Your longitude
 AREA_NAME = UNKNOWN           # Name displayed in the header
-RADIUS_NM = 60                # Initial radar range (nautical miles)
-                              # Can also be changed live with the [-]/[+] buttons
+RADIUS_NM = 60                # Initial radar range in nautical miles
 
 [Display]
 FPS = 6                       # Frames per second (lower = less CPU on Pi)
@@ -106,34 +122,29 @@ MAX_TABLE_ROWS = 10           # Max aircraft rows in the data table
 FONT_PATH = fonts/TerminusTTF-4.49.3.ttf
 BACKGROUND_PATH =             # Optional background image path
 TRAIL_MIN_LENGTH = 8          # Minimum aircraft trail length (pixels at base resolution)
-TRAIL_MAX_LENGTH = 25         # Maximum aircraft trail length
+TRAIL_MAX_LENGTH = 25         # Maximum trail length
 TRAIL_MAX_SPEED = 500         # Speed (knots) at which trail reaches maximum length
-HEADER_FONT_SIZE = 32
-RADAR_FONT_SIZE = 28
-TABLE_FONT_SIZE = 28
-INSTRUCTION_FONT_SIZE = 28
-# Note: SCREEN_WIDTH/SCREEN_HEIGHT are ignored — the app auto-detects your screen resolution
 ```
 
 ## How the radar sweep works
 
-Aircraft contacts only appear when the rotating sweep line passes over them, just like real radar. Between sweeps, contacts fade from full brightness to near-black over the duration set by `CONTACT_PERSISTENCE`. The data table also only updates when the sweep hits each aircraft.
+Aircraft contacts only appear when the rotating sweep line passes over them. Between sweeps, contacts fade from full brightness over the duration set by `CONTACT_PERSISTENCE`. The data table on the right also only updates when the sweep hits each aircraft.
 
-Zoom can be changed live using the `[-]` and `[+]` buttons displayed below the radar scope, or with the scroll wheel. Available ranges: 10, 20, 30, 50, 75, 100, 150, 200, 300 NM. Changing the zoom reloads airport data for the new range automatically.
+Zoom can be changed live with the `[-]` and `[+]` buttons below the radar scope, or with the scroll wheel. Available ranges: 10, 20, 30, 50, 75, 100, 150, 200, 300 NM. Past 30 NM, small airports are hidden. Past 50 NM, callsigns are only shown for military contacts.
 
 ## Airport overlay
 
-On first run, the app downloads airport and runway data from [OurAirports](https://ourairports.com/) and caches it to `~/.cache/retro-adsb-radar/`. Airports within your radar range are drawn on the scope in amber — large and medium airports show runway shapes and ICAO labels, small airports show as squares.
+On first run the app downloads airport and runway data from [OurAirports](https://ourairports.com/) and caches it to `~/.cache/retro-adsb-radar/`. Airports within your radar range are drawn in amber — large and medium airports show runway shapes and ICAO idents, small airports show as small squares.
 
 ## Demo mode
 
-`demo.py` runs a self-contained demo with simulated aircraft — no RTL-SDR required. It plays through a 52-second sequence highlighting every major feature, then loops indefinitely.
+`demo.py` runs a self-contained demo with simulated aircraft — no RTL-SDR required. It warms up for a few seconds, then records one full sweep cycle to `images/demo.gif` and exits.
 
 ```bash
 python3 demo.py
 ```
 
-On first run it automatically records the sequence and saves `images/demo.gif` (the animation embedded at the top of this README). To regenerate it after making UI changes, just run `demo.py` again and wait for the first cycle to complete. Pass `--no-record` to skip recording.
+Pass `--no-record` to run without saving a GIF.
 
 ## Troubleshooting
 
@@ -141,7 +152,7 @@ On first run it automatically records the sequence and saves `images/demo.gif` (
 
 **No contacts appearing:** wait up to one full sweep period (default 6 seconds) for the sweep to paint all contacts for the first time.
 
-**SDL dependency errors:** install missing libraries:
+**SDL dependency errors:**
 ```bash
 sudo apt install libsdl2-2.0-0 libsdl2-ttf-2.0-0 libsdl2-image-2.0-0
 ```
