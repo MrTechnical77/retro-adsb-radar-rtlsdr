@@ -111,8 +111,8 @@ def main():
         table.draw(radar.painted_aircraft, tracker.status, tracker.last_update)
         settings.draw(clock.get_time() / 1000.0)
 
-        screen.blit(font_cache['instruction'].render("◉ SDR", True, config.BRIGHT_GREEN), (10, 10))
-        screen.blit(font_cache['instruction'].render("⚙ SET", True, config.DIM_GREEN),    (10, 36))
+        screen.blit(font_cache['instruction'].render("* SDR", True, config.BRIGHT_GREEN), (10, 10))
+        screen.blit(font_cache['instruction'].render("# SET", True, config.DIM_GREEN),    (10, 36))
 
         # "DEMO MODE" watermark
         wm = font_cache['instruction'].render("DEMO MODE", True, (*config.DIM_GREEN, 160))

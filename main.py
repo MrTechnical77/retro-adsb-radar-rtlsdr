@@ -190,10 +190,10 @@ def main():
 
         # Data source indicator / toggle button (top-left corner)
         if config.USE_INTERNET_FALLBACK:
-            src_text   = "◉ NET"
+            src_text   = "* NET"
             src_colour = config.AMBER
         else:
-            src_text   = "◉ SDR"
+            src_text   = "* SDR"
             src_colour = config.BRIGHT_GREEN
         src_surf      = font_cache['instruction'].render(src_text, True, src_colour)
         src_btn_rect  = src_surf.get_rect(x=10, y=10)
@@ -204,7 +204,7 @@ def main():
 
         # Settings button (below source indicator)
         mouse_pos  = pygame.mouse.get_pos()
-        set_surf   = font_cache['instruction'].render('⚙ SET', True,
+        set_surf   = font_cache['instruction'].render('# SET', True,
                      config.BRIGHT_GREEN if pygame.Rect(10, 36, 80, 24).collidepoint(mouse_pos)
                      else config.DIM_GREEN)
         settings_btn_rect = set_surf.get_rect(x=10, y=36)

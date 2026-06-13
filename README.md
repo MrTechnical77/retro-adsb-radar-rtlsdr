@@ -11,7 +11,7 @@ This is a fork of [nicespoon/retro-adsb-radar](https://github.com/nicespoon/retr
 **RTL-SDR / dump1090 integration**
 - **dump1090 auto-start** — the app launches and manages dump1090 automatically on startup; no separate terminal or setup required; closing the app stops it cleanly
 - **Internet fallback** — if no RTL-SDR dongle is detected, automatically falls back to live data from [adsb.lol](https://adsb.lol) (no API key required) so the app is still useful without hardware
-- **Hot-swap SDR ↔ NET** — tap the `◉ SDR` / `◉ NET` button at runtime to switch between your local antenna feed and the internet source without restarting
+- **Hot-swap SDR ↔ NET** — tap the `* SDR` / `* NET` button at runtime to switch between your local antenna feed and the internet source without restarting
 
 **Radar behaviour**
 - **Animated sweep** — rotating sweep line paints contacts as it passes, just like real radar; contacts fade between sweeps over a configurable persistence window
@@ -23,7 +23,7 @@ This is a fork of [nicespoon/retro-adsb-radar](https://github.com/nicespoon/retr
 - **Auto-scaling** — detects screen resolution at startup and scales all UI elements, fonts, and trail lengths accordingly; works on the Pi 7" touchscreen and larger monitors
 
 **Controls & settings**
-- **Live settings menu** — tap `⚙ SET` to open an in-app overlay for editing any `config.ini` value; changes apply instantly without restarting
+- **Live settings menu** — tap `# SET` to open an in-app overlay for editing any `config.ini` value; changes apply instantly without restarting
 - **Close button** — on-screen `X` button for touchscreen users; `Q` / `ESC` also quits
 - **Desktop launcher** — `.desktop` file and `launch.sh` script for launching from the Raspberry Pi start menu
 

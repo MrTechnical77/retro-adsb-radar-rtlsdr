@@ -343,7 +343,7 @@ class SettingsMenu:
         pygame.draw.rect(self.screen, config.BRIGHT_GREEN, panel_rect, 2)
 
         # Title
-        title = self.font_bold.render('⚙ SETTINGS', True, config.AMBER)
+        title = self.font_bold.render('# SETTINGS', True, config.AMBER)
         self.screen.blit(title, title.get_rect(centerx=W // 2, y=panel_y + 10))
 
         # Content area
